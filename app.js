@@ -138,21 +138,17 @@ function generateSlotsForDay(dateObj){
    API
 ========================= */
 
-async function apiGetState(rangeStartISO, rangeEndISO){
-  const url = `${API_BASE_URL}?action=get&start=${encodeURIComponent(rangeStartISO)}&end=${encodeURIComponent(rangeEndISO)}`;
-  const r = await fetch(url, { method:"GET" });
-  if (!r.ok) throw new Error("No se pudo cargar el estado de reservas.");
-  return r.json();
-}
-
 async function apiBook(slot_id, fullName, matricula){
-  const r = await fetch(API_BASE_URL, {
-    method:"POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify({ action:"book", slot_id, fullName, matricula })
-  });
-  const data = await r.json().catch(()=>({ ok:false, error:"Respuesta inválida del servidor." }));
-  if (!r.ok || !data.ok) throw new Error(data.error || "No se pudo completar la reserva.");
+  const url =
+    `${API_BASE_URL}?action=book` +
+    `&slot_id=${encodeURIComponent(slot_id)}` +
+    `&fullName=${encodeURIComponent(fullName)}` +
+    `&matricula=${encodeURIComponent(matricula)}`;
+
+  const r = await fetch(url, { method: "GET" });
+  if (!r.ok) throw new Error("No se pudo completar la reserva.");
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || "No se pudo completar la reserva.");
   return data;
 }
 
