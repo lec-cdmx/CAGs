@@ -2,42 +2,36 @@
    CONFIG (AJUSTA AQUÍ)
 ========================= */
 
-// 1) Pega aquí tu URL del Apps Script (la obtienes más abajo)
+// 1) Pega aquí tu URL del Apps Script (Web App /exec)
 const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzDfqRGeiUAiJNTEDQxFGUhiqsYo-5FanfjaY1vt0MAy2kbBDZSuIv1MSeZFw2yQ_HQ/exec";
 
 // 2) Rango del calendario (incluyente)
 const RANGE_START = new Date("2026-03-01T00:00:00-06:00"); // Dom 1 Mar 2026
 const RANGE_END   = new Date("2026-04-03T23:59:59-06:00"); // Vie 3 Abr 2026
 
-// 3) Slots: duración y jornada "por defecto" (fácil de cambiar)
+// 3) Slots: duración y jornada "por defecto"
 const SLOT_MINUTES = 45;
 
 // Jornada base por día (0=Dom ... 6=Sáb). null => sin slots
-// Nota: aquí estoy asumiendo horarios "laborales" y aplicando tus bloqueos.
 const BASE_HOURS = {
-  0: null,                         // Domingo: sin entrevistas
+  0: null,                             // Domingo: sin entrevistas
   1: { start: "09:00", end: "18:30" }, // Lunes
   2: { start: "09:00", end: "18:30" }, // Martes
   3: { start: "09:00", end: "17:30" }, // Miércoles
   4: { start: "09:00", end: "17:30" }, // Jueves
   5: { start: "09:00", end: "15:00" }, // Viernes
-  6: null                          // Sábado: sin entrevistas
+  6: null                              // Sábado: sin entrevistas
 };
 
-// 4) Bloqueos fijos (los que pediste)
+// 4) Bloqueos fijos
 const BLOCKS = [
-  // Lunes 18:30+
-  { dow: 1, from: "18:30", to: "23:59" },
-  // Miércoles 17:30+
-  { dow: 3, from: "17:30", to: "23:59" },
-  // Jueves 17:30+
-  { dow: 4, from: "17:30", to: "23:59" },
-  // Viernes 15:00+
-  { dow: 5, from: "15:00", to: "23:59" },
-  // Lunes/Miércoles/Jueves 11-13 no disponible
-  { dow: 1, from: "11:00", to: "13:00" },
-  { dow: 3, from: "11:00", to: "13:00" },
-  { dow: 4, from: "11:00", to: "13:00" }
+  { dow: 1, from: "18:30", to: "23:59" }, // Lunes 18:30+
+  { dow: 3, from: "17:30", to: "23:59" }, // Miércoles 17:30+
+  { dow: 4, from: "17:30", to: "23:59" }, // Jueves 17:30+
+  { dow: 5, from: "15:00", to: "23:59" }, // Viernes 15:00+
+  { dow: 1, from: "11:00", to: "13:00" }, // Lun 11-13
+  { dow: 3, from: "11:00", to: "13:00" }, // Mié 11-13
+  { dow: 4, from: "11:00", to: "13:00" }  // Jue 11-13
 ];
 
 // 5) Capacidad por slot
@@ -82,7 +76,6 @@ function clampRange(d){
 }
 
 function formatRangeTitle(viewStart){
-  // vista mensual simple: muestra mes/año del viewStart
   const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   return `${meses[viewStart.getMonth()]} ${viewStart.getFullYear()}`;
 }
@@ -96,7 +89,6 @@ function overlapsBlock(dow, startMin, endMin){
     if (b.dow !== dow) return false;
     const bFrom = parseTimeHHMM(b.from);
     const bTo = parseTimeHHMM(b.to);
-    // overlap if intervals intersect
     return startMin < bTo && endMin > bFrom;
   });
 }
@@ -108,7 +100,7 @@ function overlapsBlock(dow, startMin, endMin){
 function generateSlotsForDay(dateObj){
   const dow = dateObj.getDay();
   const base = BASE_HOURS[dow];
-  if (!base) return []; // sin entrevistas ese día
+  if (!base) return [];
 
   const dayISO = toISODate(dateObj);
   const startMin = parseTimeHHMM(base.start);
@@ -119,10 +111,9 @@ function generateSlotsForDay(dateObj){
     const slotStart = t;
     const slotEnd = t + SLOT_MINUTES;
 
-    // Bloqueos por default
     const blocked = overlapsBlock(dow, slotStart, slotEnd);
-
     const key = `${dayISO}T${minutesToHHMM(slotStart)}`; // slot_id
+
     slots.push({
       slot_id: key,
       date: dayISO,
@@ -135,8 +126,44 @@ function generateSlotsForDay(dateObj){
 }
 
 /* =========================
-   API
+   API (JSONP para evitar CORS en GitHub Pages)
 ========================= */
+
+function jsonp(url){
+  return new Promise((resolve, reject) => {
+    const cb = `cb_${Date.now()}_${Math.floor(Math.random()*1e6)}`;
+    const sep = url.includes("?") ? "&" : "?";
+    const fullUrl = `${url}${sep}callback=${cb}`;
+
+    const script = document.createElement("script");
+    script.src = fullUrl;
+    script.async = true;
+
+    window[cb] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Fallo al cargar JSONP (script)."));
+    };
+
+    function cleanup(){
+      delete window[cb];
+      script.remove();
+    }
+
+    document.head.appendChild(script);
+  });
+}
+
+async function apiGetState(rangeStartISO, rangeEndISO){
+  const url = `${API_BASE_URL}?action=get&start=${encodeURIComponent(rangeStartISO)}&end=${encodeURIComponent(rangeEndISO)}`;
+  const data = await jsonp(url);
+  if (!data || !data.ok) throw new Error(data?.error || "No se pudo cargar el estado de reservas.");
+  return data;
+}
 
 async function apiBook(slot_id, fullName, matricula){
   const url =
@@ -145,10 +172,8 @@ async function apiBook(slot_id, fullName, matricula){
     `&fullName=${encodeURIComponent(fullName)}` +
     `&matricula=${encodeURIComponent(matricula)}`;
 
-  const r = await fetch(url, { method: "GET" });
-  if (!r.ok) throw new Error("No se pudo completar la reserva.");
-  const data = await r.json();
-  if (!data.ok) throw new Error(data.error || "No se pudo completar la reserva.");
+  const data = await jsonp(url);
+  if (!data || !data.ok) throw new Error(data?.error || "No se pudo completar la reserva.");
   return data;
 }
 
@@ -159,11 +184,11 @@ async function apiBook(slot_id, fullName, matricula){
 const DOW_LABELS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
 let viewMonth = new Date("2026-03-01T00:00:00-06:00"); // inicia en marzo 2026
-let cache = new Map(); // slot_id -> { bookings: [{name,matricula}] }
+let cache = new Map(); // slot_id -> [{ fullName, matricula }]
 
 function getMonthGridStart(d){
   const first = new Date(d.getFullYear(), d.getMonth(), 1);
-  const dow = first.getDay(); // 0 Dom
+  const dow = first.getDay();
   return addDays(first, -dow);
 }
 
@@ -196,7 +221,6 @@ function renderCalendar(){
   const cal = $("#calendar");
   cal.innerHTML = "";
 
-  // headers DOW
   for (const lab of DOW_LABELS){
     const h = document.createElement("div");
     h.className = "dow";
@@ -216,9 +240,11 @@ function renderCalendar(){
 
     const head = document.createElement("div");
     head.className = "day-header";
+
     const title = document.createElement("div");
     title.className = "day-title";
     title.textContent = `${day.getDate()}`;
+
     const badge = document.createElement("div");
     badge.className = "badge";
     badge.textContent = isThisMonth ? "" : "—";
@@ -228,7 +254,6 @@ function renderCalendar(){
     dayBox.appendChild(head);
 
     if (!inRange){
-      // fuera del rango global: sin slots
       dayBox.style.opacity = 0.45;
       cal.appendChild(dayBox);
       continue;
@@ -299,7 +324,6 @@ function closeBookingModal(){
 ========================= */
 
 async function refreshDataForVisibleMonth(){
-  // Cargamos reservas del mes visible, pero respetando el rango global.
   const start = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const end = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 0);
 
@@ -310,7 +334,6 @@ async function refreshDataForVisibleMonth(){
   const data = await apiGetState(startISO, endISO);
 
   cache = new Map();
-  // data.bookings: [{slot_id, fullName, matricula}]
   for (const row of (data.bookings || [])){
     if (!cache.has(row.slot_id)) cache.set(row.slot_id, []);
     cache.get(row.slot_id).push({ fullName: row.fullName, matricula: row.matricula });
@@ -323,14 +346,12 @@ async function refreshDataForVisibleMonth(){
 function initNav(){
   $("#prevBtn").addEventListener("click", async () => {
     viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()-1, 1);
-    // evitar navegar fuera del rango: si cae antes del inicio, vuelve a marzo 2026
     if (viewMonth < new Date(2026, 2, 1)) viewMonth = new Date(2026, 2, 1);
     await refreshDataForVisibleMonth();
   });
 
   $("#nextBtn").addEventListener("click", async () => {
     viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 1);
-    // evitar navegar más allá de abril 2026
     if (viewMonth > new Date(2026, 3, 1)) viewMonth = new Date(2026, 3, 1);
     await refreshDataForVisibleMonth();
   });
@@ -359,7 +380,7 @@ function initModal(){
       closeBookingModal();
       await refreshDataForVisibleMonth();
     } catch(e){
-      $("#modalError").textContent = e.message || "Error al reservar.";
+      $("#modalError").textContent = e?.message || "Error al reservar.";
     } finally {
       $("#confirmBtn").disabled = false;
     }
@@ -372,7 +393,7 @@ function initModal(){
   try{
     await refreshDataForVisibleMonth();
   } catch(e){
-    setStatus("No se pudo cargar el calendario. Revisa la configuración del API.");
+    setStatus(`No se pudo cargar el calendario: ${e?.message || e}`);
     console.error(e);
   }
 })();
