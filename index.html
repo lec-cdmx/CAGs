@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Entrevistas significativas | Dirección de Programa</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="wrap">
+    <div class="hero">
+      <h1>Entrevistas significativas</h1>
+      <p class="lead">
+        Un espacio breve (máx. 45 min) para conversar con calma sobre tu experiencia en el Tec:
+        aprendizajes, momentos clave y redes de apoyo. La idea es cerrar esta etapa con reflexión,
+        reconocimiento y perspectiva. No es un ejercicio de evaluación.
+      </p>
+      <p class="note">
+        Si prefieres venir en pareja, también se puede: cada horario admite hasta 2 personas.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card" id="registro">
+      <div class="card-head">
+        <h2>Registro (marzo 2026)</h2>
+        <div class="legend">
+          <span class="pill pill-open">Disponible</span>
+          <span class="pill pill-almost">1 lugar</span>
+          <span class="pill pill-full">Lleno</span>
+          <span class="pill pill-blocked">No disponible</span>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button id="prevBtn" class="btn" type="button">◀</button>
+        <div class="toolbar-title">
+          <div id="rangeTitle" class="range-title"></div>
+          <div class="subtle">Dom 1 Mar 2026 → Vie 3 Abr 2026</div>
+        </div>
+        <button id="nextBtn" class="btn" type="button">▶</button>
+      </div>
+
+      <div id="status" class="status"></div>
+      <div id="calendar" class="calendar"></div>
+    </section>
+
+    <footer class="footer subtle">
+      <div>Horario CDMX (America/Mexico_City). Si ves un choque con tus clases, elige otro espacio.</div>
+    </footer>
+  </main>
+
+  <!-- Modal -->
+  <dialog id="bookingModal" class="modal">
+    <form method="dialog" class="modal-card" id="bookingForm">
+      <h3 id="modalTitle">Reservar</h3>
+      <p id="modalMeta" class="subtle"></p>
+
+      <label class="lbl">Nombre completo
+        <input id="fullName" name="fullName" autocomplete="name" required />
+      </label>
+
+      <label class="lbl">Matrícula
+        <input id="matricula" name="matricula" inputmode="numeric" required />
+      </label>
+
+      <div class="modal-actions">
+        <button class="btn ghost" value="cancel" type="button" id="cancelBtn">Cancelar</button>
+        <button class="btn primary" value="confirm" type="submit" id="confirmBtn">Confirmar reserva</button>
+      </div>
+
+      <div id="modalError" class="error" role="alert"></div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
