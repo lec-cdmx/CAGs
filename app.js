@@ -3,7 +3,7 @@
 ========================= */
 
 // 1) Pega aquí tu URL del Apps Script (la obtienes más abajo)
-const API_BASE_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzDfqRGeiUAiJNTEDQxFGUhiqsYo-5FanfjaY1vt0MAy2kbBDZSuIv1MSeZFw2yQ_HQ/exec";
 
 // 2) Rango del calendario (incluyente)
 const RANGE_START = new Date("2026-03-01T00:00:00-06:00"); // Dom 1 Mar 2026
