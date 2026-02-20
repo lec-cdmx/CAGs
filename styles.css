@@ -134,3 +134,27 @@ input{
 }
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
 .error{margin-top:10px;color:var(--bad);font-size:13px;min-height:16px}
+
+/* Animación del modal */
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal[open] .modal-card {
+  animation: modalIn 0.2s ease-out;
+}
+
+/* Transición suave en los slots */
+.slot {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.slot:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.slot:active:not(:disabled) {
+  transform: translateY(0px);
+}
