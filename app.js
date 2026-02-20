@@ -7,7 +7,7 @@ const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzDfqRGeiUAiJNTEDQ
 
 // 2) Rango del calendario (incluyente)
 const RANGE_START = new Date("2026-03-01T00:00:00-06:00"); // Dom 1 Mar 2026
-const RANGE_END   = new Date("2026-04-03T23:59:59-06:00"); // Vie 3 Abr 2026
+const RANGE_END = new Date("2026-03-27T23:59:59-06:00"); // Vie 27 Mar 2026
 
 // 3) Slots: duración y jornada "por defecto"
 const SLOT_MINUTES = 45;
