@@ -18,6 +18,7 @@
       </p>
     </div>
   </header>
+
   <main class="wrap">
     <section class="card" id="registro">
       <div class="card-head">
@@ -32,28 +33,48 @@
       <div id="status" class="status"></div>
       <div id="calendar" class="calendar"></div>
     </section>
+
     <footer class="footer subtle">
       <div>Horario CDMX (America/Mexico_City). Si ves un choque con tus clases, elige otro espacio.</div>
     </footer>
   </main>
+
   <!-- Modal -->
   <dialog id="bookingModal" class="modal">
     <form method="dialog" class="modal-card" id="bookingForm">
       <h3 id="modalTitle">Reservar</h3>
       <p id="modalMeta" class="subtle"></p>
+
       <label class="lbl">Nombre completo
         <input id="fullName" name="fullName" autocomplete="name" required />
       </label>
+
       <label class="lbl">Matrícula
-        <input id="matricula" name="matricula" inputmode="numeric" required />
+        <input
+          id="matricula"
+          name="matricula"
+          type="text"
+          inputmode="text"
+          autocapitalize="characters"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          enterkeyhint="done"
+          placeholder="A0000000"
+          maxlength="10"
+          required
+        />
       </label>
+
       <div class="modal-actions">
         <button class="btn ghost" value="cancel" type="button" id="cancelBtn">Cancelar</button>
         <button class="btn primary" value="confirm" type="submit" id="confirmBtn">Confirmar reserva</button>
       </div>
+
       <div id="modalError" class="error" role="alert"></div>
     </form>
   </dialog>
+
   <script src="app.js"></script>
 </body>
 </html>
