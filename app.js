@@ -159,18 +159,21 @@ function jsonp(url){
 }
 
 async function apiGetState(rangeStartISO, rangeEndISO){
-  const url = `${API_BASE_URL}?action=get&start=${encodeURIComponent(rangeStartISO)}&end=${encodeURIComponent(rangeEndISO)}`;
+  // _t evita que el navegador o Google cacheen la respuesta
+  const url = `${API_BASE_URL}?action=get&start=${encodeURIComponent(rangeStartISO)}&end=${encodeURIComponent(rangeEndISO)}&_t=${Date.now()}`;
   const data = await jsonp(url);
   if (!data || !data.ok) throw new Error(data?.error || "No se pudo cargar el estado de reservas.");
   return data;
 }
 
 async function apiBook(slot_id, fullName, matricula){
+  // _t evita que el navegador o Google cacheen la respuesta
   const url =
     `${API_BASE_URL}?action=book` +
     `&slot_id=${encodeURIComponent(slot_id)}` +
     `&fullName=${encodeURIComponent(fullName)}` +
-    `&matricula=${encodeURIComponent(matricula)}`;
+    `&matricula=${encodeURIComponent(matricula)}` +
+    `&_t=${Date.now()}`;
 
   const data = await jsonp(url);
   if (!data || !data.ok) throw new Error(data?.error || "No se pudo completar la reserva.");
