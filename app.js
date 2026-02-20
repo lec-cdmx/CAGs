@@ -1,40 +1,34 @@
 /* =========================
-   CONFIG (AJUSTA AQUÍ)
+   CONFIG
 ========================= */
 
-// 1) Pega aquí tu URL del Apps Script (Web App /exec)
 const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzDfqRGeiUAiJNTEDQxFGUhiqsYo-5FanfjaY1vt0MAy2kbBDZSuIv1MSeZFw2yQ_HQ/exec";
 
-// 2) Rango del calendario (incluyente)
-const RANGE_START = new Date("2026-03-01T00:00:00-06:00"); // Dom 1 Mar 2026
-const RANGE_END = new Date("2026-03-27T23:59:59-06:00"); // Vie 27 Mar 2026
+const RANGE_START = new Date("2026-03-01T00:00:00-06:00");
+const RANGE_END   = new Date("2026-03-27T23:59:59-06:00");
 
-// 3) Slots: duración y jornada "por defecto"
 const SLOT_MINUTES = 45;
 
-// Jornada base por día (0=Dom ... 6=Sáb). null => sin slots
 const BASE_HOURS = {
-  0: null,                             // Domingo: sin entrevistas
-  1: { start: "09:00", end: "18:30" }, // Lunes
-  2: { start: "09:00", end: "18:30" }, // Martes
-  3: { start: "09:00", end: "17:30" }, // Miércoles
-  4: { start: "09:00", end: "17:30" }, // Jueves
-  5: { start: "09:00", end: "15:00" }, // Viernes
-  6: null                              // Sábado: sin entrevistas
+  0: null,
+  1: { start: "09:00", end: "18:30" },
+  2: { start: "09:00", end: "18:30" },
+  3: { start: "09:00", end: "17:30" },
+  4: { start: "09:00", end: "17:30" },
+  5: { start: "09:00", end: "15:00" },
+  6: null
 };
 
-// 4) Bloqueos fijos
 const BLOCKS = [
-  { dow: 1, from: "18:30", to: "23:59" }, // Lunes 18:30+
-  { dow: 3, from: "17:30", to: "23:59" }, // Miércoles 17:30+
-  { dow: 4, from: "17:30", to: "23:59" }, // Jueves 17:30+
-  { dow: 5, from: "15:00", to: "23:59" }, // Viernes 15:00+
-  { dow: 1, from: "11:00", to: "13:00" }, // Lun 11-13
-  { dow: 3, from: "11:00", to: "13:00" }, // Mié 11-13
-  { dow: 4, from: "11:00", to: "13:00" }  // Jue 11-13
+  { dow: 1, from: "18:30", to: "23:59" },
+  { dow: 3, from: "17:30", to: "23:59" },
+  { dow: 4, from: "17:30", to: "23:59" },
+  { dow: 5, from: "15:00", to: "23:59" },
+  { dow: 1, from: "11:00", to: "13:00" },
+  { dow: 3, from: "11:00", to: "13:00" },
+  { dow: 4, from: "11:00", to: "13:00" }
 ];
 
-// 5) Capacidad por slot
 const SLOT_CAPACITY = 2;
 
 /* =========================
@@ -46,10 +40,7 @@ const $ = (sel) => document.querySelector(sel);
 function pad(n){ return String(n).padStart(2,"0"); }
 
 function toISODate(d){
-  const y = d.getFullYear();
-  const m = pad(d.getMonth()+1);
-  const day = pad(d.getDate());
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 
 function parseTimeHHMM(t){
@@ -58,9 +49,7 @@ function parseTimeHHMM(t){
 }
 
 function minutesToHHMM(mins){
-  const h = Math.floor(mins/60);
-  const m = mins%60;
-  return `${pad(h)}:${pad(m)}`;
+  return `${pad(Math.floor(mins/60))}:${pad(mins%60)}`;
 }
 
 function addDays(d, n){
@@ -73,11 +62,6 @@ function clampRange(d){
   if (d < RANGE_START) return new Date(RANGE_START);
   if (d > RANGE_END) return new Date(RANGE_END);
   return d;
-}
-
-function formatRangeTitle(viewStart){
-  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  return `${meses[viewStart.getMonth()]} ${viewStart.getFullYear()}`;
 }
 
 function inOverallRange(day){
@@ -94,7 +78,7 @@ function overlapsBlock(dow, startMin, endMin){
 }
 
 /* =========================
-   GENERAR SLOTS "TEÓRICOS"
+   GENERAR SLOTS
 ========================= */
 
 function generateSlotsForDay(dateObj){
@@ -108,16 +92,12 @@ function generateSlotsForDay(dateObj){
 
   const slots = [];
   for (let t = startMin; t + SLOT_MINUTES <= endMin; t += SLOT_MINUTES) {
-    const slotStart = t;
     const slotEnd = t + SLOT_MINUTES;
-
-    const blocked = overlapsBlock(dow, slotStart, slotEnd);
-    const key = `${dayISO}T${minutesToHHMM(slotStart)}`; // slot_id
-
+    const blocked = overlapsBlock(dow, t, slotEnd);
     slots.push({
-      slot_id: key,
+      slot_id: `${dayISO}T${minutesToHHMM(t)}`,
       date: dayISO,
-      start: minutesToHHMM(slotStart),
+      start: minutesToHHMM(t),
       end: minutesToHHMM(slotEnd),
       blocked
     });
@@ -126,55 +106,34 @@ function generateSlotsForDay(dateObj){
 }
 
 /* =========================
-   API (JSONP para evitar CORS en GitHub Pages)
+   API
 ========================= */
 
 function jsonp(url){
   return new Promise((resolve, reject) => {
     const cb = `cb_${Date.now()}_${Math.floor(Math.random()*1e6)}`;
-    const sep = url.includes("?") ? "&" : "?";
-    const fullUrl = `${url}${sep}callback=${cb}`;
-
+    const fullUrl = `${url}&callback=${cb}`;
     const script = document.createElement("script");
     script.src = fullUrl;
     script.async = true;
 
-    window[cb] = (data) => {
-      cleanup();
-      resolve(data);
-    };
+    window[cb] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error("Fallo JSONP.")); };
 
-    script.onerror = () => {
-      cleanup();
-      reject(new Error("Fallo al cargar JSONP (script)."));
-    };
-
-    function cleanup(){
-      delete window[cb];
-      script.remove();
-    }
-
+    function cleanup(){ delete window[cb]; script.remove(); }
     document.head.appendChild(script);
   });
 }
 
-async function apiGetState(rangeStartISO, rangeEndISO){
-  // _t evita que el navegador o Google cacheen la respuesta
-  const url = `${API_BASE_URL}?action=get&start=${encodeURIComponent(rangeStartISO)}&end=${encodeURIComponent(rangeEndISO)}&_t=${Date.now()}`;
+async function apiGetState(startISO, endISO){
+  const url = `${API_BASE_URL}?action=get&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&_t=${Date.now()}`;
   const data = await jsonp(url);
-  if (!data || !data.ok) throw new Error(data?.error || "No se pudo cargar el estado de reservas.");
+  if (!data || !data.ok) throw new Error(data?.error || "No se pudo cargar reservas.");
   return data;
 }
 
 async function apiBook(slot_id, fullName, matricula){
-  // _t evita que el navegador o Google cacheen la respuesta
-  const url =
-    `${API_BASE_URL}?action=book` +
-    `&slot_id=${encodeURIComponent(slot_id)}` +
-    `&fullName=${encodeURIComponent(fullName)}` +
-    `&matricula=${encodeURIComponent(matricula)}` +
-    `&_t=${Date.now()}`;
-
+  const url = `${API_BASE_URL}?action=book&slot_id=${encodeURIComponent(slot_id)}&fullName=${encodeURIComponent(fullName)}&matricula=${encodeURIComponent(matricula)}&_t=${Date.now()}`;
   const data = await jsonp(url);
   if (!data || !data.ok) throw new Error(data?.error || "No se pudo completar la reserva.");
   return data;
@@ -185,25 +144,20 @@ async function apiBook(slot_id, fullName, matricula){
 ========================= */
 
 const DOW_LABELS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-
-let viewMonth = new Date("2026-03-01T00:00:00-06:00"); // inicia en marzo 2026
-let cache = new Map(); // slot_id -> [{ fullName, matricula }]
+const viewMonth = new Date("2026-03-01T00:00:00-06:00");
+let cache = new Map();
 
 function getMonthGridStart(d){
   const first = new Date(d.getFullYear(), d.getMonth(), 1);
-  const dow = first.getDay();
-  return addDays(first, -dow);
+  return addDays(first, -first.getDay());
 }
 
 function getMonthGridEnd(d){
   const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
-  const dow = last.getDay();
-  return addDays(last, (6 - dow));
+  return addDays(last, 6 - last.getDay());
 }
 
-function setStatus(msg){
-  $("#status").textContent = msg || "";
-}
+function setStatus(msg){ $("#status").textContent = msg || ""; }
 
 function slotClass(slot, bookings){
   if (slot.blocked) return "blocked";
@@ -219,7 +173,6 @@ function slotLabel(bookings){
 }
 
 function renderCalendar(){
-
   const cal = $("#calendar");
   cal.innerHTML = "";
 
@@ -242,15 +195,12 @@ function renderCalendar(){
 
     const head = document.createElement("div");
     head.className = "day-header";
-
     const title = document.createElement("div");
     title.className = "day-title";
-    title.textContent = `${day.getDate()}`;
-
+    title.textContent = day.getDate();
     const badge = document.createElement("div");
     badge.className = "badge";
     badge.textContent = isThisMonth ? "" : "—";
-
     head.appendChild(title);
     head.appendChild(badge);
     dayBox.appendChild(head);
@@ -277,20 +227,14 @@ function renderCalendar(){
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = `slot ${slotClass(slot, bookings)}`;
-      btn.dataset.slotId = slot.slot_id;
-      btn.dataset.slotMeta = `${slot.date} ${slot.start}–${slot.end}`;
       btn.innerHTML = `<strong>${slot.start}</strong> <span class="subtle">→ ${slot.end}</span>
                        <small>${slotLabel(bookings)}</small>`;
 
-      const isBlocked = slot.blocked;
-      const isFull = bookings.length >= SLOT_CAPACITY;
-
-      if (isBlocked || isFull) {
+      if (slot.blocked || bookings.length >= SLOT_CAPACITY) {
         btn.disabled = true;
       } else {
         btn.addEventListener("click", () => openBookingModal(slot, bookings));
       }
-
       dayBox.appendChild(btn);
     }
 
@@ -322,18 +266,15 @@ function closeBookingModal(){
 }
 
 /* =========================
-   CARGA INICIAL + NAVEGACIÓN
+   CARGA INICIAL
 ========================= */
 
-async function refreshDataForVisibleMonth(){
+async function refreshData(){
   const start = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
-  const end = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 0);
-
-  const startISO = toISODate(clampRange(start));
-  const endISO = toISODate(clampRange(end));
+  const end   = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 0);
 
   setStatus("Cargando disponibilidad...");
-  const data = await apiGetState(startISO, endISO);
+  const data = await apiGetState(toISODate(clampRange(start)), toISODate(clampRange(end)));
 
   cache = new Map();
   for (const row of (data.bookings || [])){
@@ -345,33 +286,18 @@ async function refreshDataForVisibleMonth(){
   renderCalendar();
 }
 
-function initNav(){
-  $("#prevBtn").addEventListener("click", async () => {
-    viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()-1, 1);
-    if (viewMonth < new Date(2026, 2, 1)) viewMonth = new Date(2026, 2, 1);
-    await refreshDataForVisibleMonth();
-  });
-
-  $("#nextBtn").addEventListener("click", async () => {
-    viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 1);
-    if (viewMonth > new Date(2026, 3, 1)) viewMonth = new Date(2026, 3, 1);
-    await refreshDataForVisibleMonth();
-  });
-}
-
 function initModal(){
   $("#cancelBtn").addEventListener("click", () => closeBookingModal());
 
   $("#bookingForm").addEventListener("submit", async (ev) => {
     ev.preventDefault();
     $("#modalError").textContent = "";
-
     if (!selectedSlot) return;
 
     const fullName = $("#fullName").value.trim();
     const matricula = $("#matricula").value.trim();
 
-    if (!fullName || !matricula) {
+    if (!fullName || !matricula){
       $("#modalError").textContent = "Completa nombre y matrícula.";
       return;
     }
@@ -380,7 +306,7 @@ function initModal(){
       $("#confirmBtn").disabled = true;
       await apiBook(selectedSlot.slot_id, fullName, matricula);
       closeBookingModal();
-      await refreshDataForVisibleMonth();
+      await refreshData();
     } catch(e){
       $("#modalError").textContent = e?.message || "Error al reservar.";
     } finally {
@@ -390,10 +316,9 @@ function initModal(){
 }
 
 (async function main(){
-  initNav();
   initModal();
   try{
-    await refreshDataForVisibleMonth();
+    await refreshData();
   } catch(e){
     setStatus(`No se pudo cargar el calendario: ${e?.message || e}`);
     console.error(e);
