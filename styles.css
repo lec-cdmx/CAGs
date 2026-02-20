@@ -121,7 +121,7 @@ h2{margin:0 0 4px;font-size:20px}
   border-radius:16px;
   padding:16px;
 }
-.modal-card h3{margin:0 0 6px}
+.modal-card h3{margin:0 0 6px; color:#ffffff;}
 .lbl{display:block;margin:10px 0;color:var(--muted);font-size:13px}
 input{
   width:100%;
