@@ -158,3 +158,5 @@ input{
 .slot:active:not(:disabled) {
   transform: translateY(0px);
 }
+
+#prevBtn, #nextBtn { display: none; }
