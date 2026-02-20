@@ -219,7 +219,6 @@ function slotLabel(bookings){
 }
 
 function renderCalendar(){
-  $("#rangeTitle").textContent = formatRangeTitle(viewMonth);
 
   const cal = $("#calendar");
   cal.innerHTML = "";
