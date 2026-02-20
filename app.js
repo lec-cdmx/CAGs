@@ -11,7 +11,7 @@ const SLOT_MINUTES = 45;
 
 const BASE_HOURS = {
   0: null,
-  1: { start: "09:00", end: "18:30" },
+  1: { start: "09:00", end: "13:00" },
   2: { start: "09:00", end: "18:30" },
   3: { start: "09:00", end: "17:30" },
   4: { start: "09:00", end: "17:30" },
@@ -20,7 +20,7 @@ const BASE_HOURS = {
 };
 
 const BLOCKS = [
-  { dow: 1, from: "18:30", to: "23:59" },
+  { dow: 1, from: "13:00", to: "23:59" },
   { dow: 3, from: "17:30", to: "23:59" },
   { dow: 4, from: "17:30", to: "23:59" },
   { dow: 5, from: "15:00", to: "23:59" },
