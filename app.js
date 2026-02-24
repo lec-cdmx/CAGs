@@ -86,6 +86,9 @@ function generateSlotsForDay(dateObj){
   const base = BASE_HOURS[dow];
   if (!base) return [];
 
+  // Bloquear el 4 de marzo completamente
+  if (toISODate(dateObj) === "2026-03-04") return [];
+
   const dayISO = toISODate(dateObj);
   const startMin = parseTimeHHMM(base.start);
   const endMin = parseTimeHHMM(base.end);
